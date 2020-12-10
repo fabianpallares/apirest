@@ -5,28 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
-// CORS contiene los nombres de campos de cabecera HTTP para que cada respuesta
-// de un endpoint del servidor, pueda cumplir con el "intercambio de recursos
-// de orígenes cruzados".
-//
-// AccessControlAllowCredentials:
-//	almacena el valor por defecto del campo de
-// 	la cabecera "Access-Control-Allow-Credentials" para todos los recursos.
-// 	Indica si la respuesta puede ser expuesta cuando el campo de la
-// 	cabecera "credentials" es verdadera.
-// 	Este indica si la solicitud puede realizarse usando credenciales.
-// 	Las solicitudes GET no contemplan esta cabecera.
-//
-// AccessControlMaxAge:
-// 	almacena el valor por defecto del campo de la cabecera
-// 	"Access-Control-Max-Age" para todos los recursos.
-// 	Este encabezado indica durante cuánto tiempo los resultados de la
-// 	solicitud pueden ser 'cacheados' por el servidor.
-// 	El valor se establece en segundos.
-var CORS = struct {
+// cors almacena los nombres de los campos de la cabecera CORS.
+var cors = struct {
 	AccessControlAllowOrigin      string
 	AccessControlAllowCredentials string
 	AccessControlMaxAge           string
@@ -49,37 +33,65 @@ func (m ManejadorFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) (interf
 	return m(w, r)
 }
 
-// campoCabeceraHTTP almacena el nombre y el valor de un campo de una cabecera
-// de un endpoint.
-type campoCabeceraHTTP struct {
-	nombre string
-	valor  interface{}
+// patronDeRuta almacena un patrón de ruta único para toda la aplicación.
+// 	ejemplos:
+//	"/personas"
+//	"/personas/{v}"
+//	"/personas/{v}/datos_principales"
+type patronDeRuta string
+
+// string convierte a string el tipo patrón de ruta.
+func (pr patronDeRuta) string() string {
+	return string(pr)
 }
 
-// endpoint almacena las cabeceras a exponer y el nombre de función a procesar.
+// endpoint almacena un apuntador al detalle del patrón de ruta y la función
+// (ManejadorFunc) a procesar.
 type endpoint struct {
-	// QUITAR cors     map[string]interface{} // campos de cabecera CORS del endpoint
-	// QUITAR cabecera map[string]interface{} // campos de cabecera del endpoint
-	funcion ManejadorFunc // función a procesar
+	detalle *patronDeRutaDetalle // apuntador al detalle del patrón de ruta al cuál pertenece el endpoint
+	funcion ManejadorFunc        // función (ManejadorFunc) a procesar
 }
 
-// // CampoCabeceraHTTP almacena un nuevo campo ala cabecera HTTP (campos y valores)
-// // que el endpoint expone al momento de responder.
-// func (o *endpoint) CampoCabeceraHTTP(nombre string, valor interface{}) *endpoint {
-// 	o.cabecera[nombre] = valor
+// CORSCamposRequeridos solicita los campos CORS requeridos para poder procesar
+// el endpoint solicitado.
+// es el campo de cabecera: "Access-Control-Allow-Headers"
+func (o *endpoint) CORSCamposRequeridos(campos ...string) *endpoint {
+	for _, campo := range campos {
+		var esExistente bool
+		for _, campoExistente := range o.detalle.cors.camposRequeridos {
+			if strings.Trim(strings.ToLower(campo), " ") == strings.Trim(strings.ToLower(campoExistente), " ") {
+				esExistente = true
+				break
+			}
+		}
+		if !esExistente {
+			o.detalle.cors.camposRequeridos = append(o.detalle.cors.camposRequeridos, campo)
+		}
+	}
 
-// 	return o
-// }
+	return o
+}
 
-// // CabeceraHTTP almacena la cabecera HTTP (campos y valores) que el endpoint
-// // expone al momento de responder.
-// func (o *endpoint) CabeceraHTTP(cabecera ...campoCabeceraHTTP) *endpoint {
-// 	for _, campo := range cabecera {
-// 		o.cabecera[campo.nombre] = campo.valor
-// 	}
+// CORSCamposExpuestos establece los campos CORS que el endpoint expondrá para
+// que el cliente recupere información. Este encabezado expone una lista blanca
+// de campos que tienen permitido acceder los exploradores.
+// es el campo de cabecera: "Access-Control-Expose-Headers"
+func (o *endpoint) CORSCamposExpuestos(campos ...string) *endpoint {
+	for _, campo := range campos {
+		var esExistente bool
+		for _, campoExistente := range o.detalle.cors.camposExpuestos {
+			if strings.Trim(strings.ToLower(campo), " ") == strings.Trim(strings.ToLower(campoExistente), " ") {
+				esExistente = true
+				break
+			}
+		}
+		if !esExistente {
+			o.detalle.cors.camposExpuestos = append(o.detalle.cors.camposExpuestos, campo)
+		}
+	}
 
-// 	return o
-// }
+	return o
+}
 
 // variableDePatronDeRuta almacena los valores de una parte variable
 // (la posición y el nombre) que contenga el patrón de ruta.
@@ -88,17 +100,62 @@ type variableDePatronDeRuta struct {
 	nombre   string
 }
 
+// patronDeRutaDetalle almacena por cada patrón de ruta, todos los endpoint que
+// comparten el mismo patrón de ruta, las partes variables del patrón de ruta y
+// los valores CORS agrupados para que puedan ser expuestos a través de OPTIONS.
 type patronDeRutaDetalle struct {
-	// QUITAR metodosPermitos []string                 // métodos HTTP permitidos (agrupados) para un mismo patrón de ruta
+	cors struct {
+		// almacena todos los métodos para una mismo patrón de ruta ("GET, POST, ...")
+		// es el campo de cabecera: Access-Control-Allow-Methods
+		metodosPermitidos []string
+
+		// almacena todos los campos requeridos para un mismo patrón de ruta
+		// es el campo de cabecera: Access-Control-Allow-Headers
+		camposRequeridos []string
+
+		// almacena todos los campos expuestos para un mismo patrón de ruta
+		// es el campo de cabecera: Access-Control-Expose-Headers
+		camposExpuestos []string
+	}
+
+	endpoints map[string]*endpoint     // cada patrón de ruta puede poseer un endpoint distinto por cada método HTTP
 	variables []variableDePatronDeRuta // almacena las variables (posición y nombre) de todas las partes variables que posee el patrón de ruta
-	endpoints map[string]endpoint      // cada patrón de ruta puede poseer un endpoint distinto por cada método HTTP
 }
 
-// enrutador almacena todos los patrones de ruta, junto con todos los endpoints
-// de la aplicación.
+// enrutador almacena los valores de los campos generales de CORS y todos los
+// patrones de ruta de la aplicación.
 type enrutador struct {
-	patronesDeRutas map[string]patronDeRutaDetalle // mapa de patrones de rutas con su detalle
-	// errores []error // almacena los errores de generación de patrones de rutas
+	cors struct {
+		// esActivo determina que todos los endpoints utilizan CORS.
+		esActivo bool
+
+		// origenes almacena el valor por defecto del campo de la cabecera
+		// "Access-Control-Allow-Origin" para todos los endpoints.
+		// Este campo de la cabecera, especifica una o varias URIs que
+		// pueden tener acceso al endpoint.
+		// El explorador asegura esto. Para solicitudes sin credenciales, el
+		// servidor debe especificar "*" como un comodín, de este modo se
+		// permite a cualquier origen acceder al recurso.
+		origenes []string
+
+		// credenciales almacena el valor por defecto del campo de la cabecera
+		// "Access-Control-Allow-Credentials" para todos los endpoints.
+		// Indica si la respuesta puede ser expuesta cuando el campo de la
+		// cabecera "credentials" es verdadera.
+		// Este indica si la solicitud puede realizarse usando credenciales.
+		// Las solicitudes GET no contemplan esta cabecera.
+		credenciales bool
+
+		// duracion almacena el valor por defecto del campo de la cabecera
+		// "Access-Control-Max-Age" para todos los endpoints.
+		// Este encabezado indica durante cuánto tiempo los resultados de la
+		// solicitud pueden ser 'cacheados' por el servidor.
+		// El valor se establece en segundos.
+		duracion int
+	}
+
+	// mapa de patrones de rutas con su detalle
+	patronesDeRutas map[patronDeRuta]*patronDeRutaDetalle
 }
 
 // ServeHTTP envía la solicitud a la función cuyo patrón de ruta coincida
@@ -111,34 +168,49 @@ func (o *enrutador) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rutaRecibida = rutaRecibida[:pos]
 	}
 
-	detalle, variables, encontrado := o.buscarPatronDeRuta(rutaRecibida)
+	detallePtr, variables, encontrado := o.buscarPatronDeRuta(rutaRecibida)
 	if !encontrado {
 		http.Error(w, "Recurso inexistente", http.StatusNotFound)
 		return
 	}
 
-	// Verificar la existencia del método HTTP recibido
+	var cabecerasCORS = make(map[string]string)
 	metodoRecibido := r.Method
-	// if rt.cors.activo && metodoRecibido == "OPTIONS" {
-	// 	w.Header().Set(accessControlAllowOrigin, rt.cors.origenes)
-	// 	w.Header().Set(accessControlAllowCredentials, strconv.FormatBool(rt.cors.credenciales))
-	// 	w.Header().Set(accessControlMaxAge, strconv.Itoa(rt.cors.duracion))
-	// 	w.Header().Set(accessControlAllowMethods, strings.Join(patronPtr.cors.metodos, ", "))
-	// 	w.Header().Set(accessControlAllowHeaders, strings.Join(patronPtr.cors.camposRequeridos, ", "))
-	// 	w.Header().Set(accessControlExposeHeaders, strings.Join(patronPtr.cors.camposExpuestos, ", "))
+	if metodoRecibido == "OPTIONS" {
+		if !o.cors.esActivo {
+			http.Error(w, "La aplicación no implementa el método OPTIONS (No se encuentra activa la opcion CORS)", http.StatusNotFound)
+			return
+		}
+		w.Header().Set(cors.AccessControlAllowOrigin, strings.Join(o.cors.origenes, ", "))
+		w.Header().Set(cors.AccessControlAllowCredentials, strconv.FormatBool(o.cors.credenciales))
+		w.Header().Set(cors.AccessControlMaxAge, strconv.Itoa(o.cors.duracion))
+		w.Header().Set(cors.AccessControlAllowMethods, strings.Join(detallePtr.cors.metodosPermitidos, ", "))
+		w.Header().Set(cors.AccessControlAllowHeaders, strings.Join(detallePtr.cors.camposRequeridos, ", "))
+		w.Header().Set(cors.AccessControlExposeHeaders, strings.Join(detallePtr.cors.camposExpuestos, ", "))
 
-	// 	w.WriteHeader(http.StatusNoContent)
-	// 	return
-	// }
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
-	// Buscar la ruta por el método.
-	ep, ok := detalle.endpoints[metodoRecibido]
+	// si no es options... verificar la existencia del método HTTP recibido
+	ep, ok := detallePtr.endpoints[metodoRecibido]
 	if !ok {
 		http.Error(w, fmt.Sprintf("La ruta solicitada no implementa el método %v", metodoRecibido), http.StatusNotFound)
 		return
 	}
 
+	// subir al contexto las cabeceras CORS y las variables de los patrones de ruta
 	ctx := r.Context()
+
+	if o.cors.esActivo {
+		cabecerasCORS[cors.AccessControlAllowOrigin] = strings.Join(o.cors.origenes, ", ")
+		cabecerasCORS[cors.AccessControlAllowCredentials] = strconv.FormatBool(o.cors.credenciales)
+		cabecerasCORS[cors.AccessControlMaxAge] = strconv.Itoa(o.cors.duracion)
+		cabecerasCORS[cors.AccessControlAllowMethods] = strings.Join(detallePtr.cors.metodosPermitidos, ", ")
+		cabecerasCORS[cors.AccessControlAllowHeaders] = strings.Join(detallePtr.cors.camposRequeridos, ", ")
+		cabecerasCORS[cors.AccessControlExposeHeaders] = strings.Join(detallePtr.cors.camposExpuestos, ", ")
+		ctx = context.WithValue(ctx, "cors", cabecerasCORS)
+	}
 	if len(variables) > 0 {
 		ctx = context.WithValue(ctx, "variables", variables)
 	}
@@ -146,9 +218,37 @@ func (o *enrutador) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ep.funcion(w, r.WithContext(ctx))
 }
 
-// OPTIONS gestiona las operaciones OPTIONS de HTTP (utilizado principalmente para solicitudes CORS).
-func (o *enrutador) OPTIONS(ruta string, funcion ManejadorFunc) *endpoint {
-	return o.nuevoEndpoint("OPTIONS", ruta, funcion)
+// CORSActivar determina que todos los recursos de la aplicación utilizarán CORS.
+func (o *enrutador) CORSActivar() *enrutador {
+	o.cors.esActivo = true
+	return o
+}
+
+// CORSOrigenes cambia el valor de los orígenes permitidos (URIs que pueden
+// tener acceso a los endpoints).
+// el el campo de cabecera: "Access-Control-Allow-Origin"
+// tiene como valor por defecto: "*".
+func (o *enrutador) CORSOrigenes(origenes ...string) *enrutador {
+	o.cors.origenes = origenes
+	return o
+}
+
+// COSCredenciales cambia el valor del requerimiento de credenciales para
+// consumir los recursos.
+// es el campo de cabecera: "Access-Control-Allow-Credentials"
+// tiene como valor por defecto: false.
+func (o *enrutador) COSCredenciales(credenciales bool) *enrutador {
+	o.cors.credenciales = credenciales
+	return o
+}
+
+// CORSDuracion cambia el valor de la duración del tiempo que el servidor
+// 'cachea' los resultados de todos los recursos.
+// es el campo de cabecera: "Access-Control-Max-Age"
+// tiene como valor por defecto: -1 (sin caché).
+func (o *enrutador) CORSDuracion(duracion int) *enrutador {
+	o.cors.duracion = duracion
+	return o
 }
 
 // GET gestiona las operaciones GET de HTTP (consulta de recursos).
@@ -182,58 +282,56 @@ func (o *enrutador) IniciarPorHTTP(puerto string) error {
 }
 
 // IniciarPorHTTPS inicia el servidor escuchando por HTTPS.
-func (o *enrutador) EscucharHTTPS(puerto, certificadoPublico, certificadoPrivado string) error {
+func (o *enrutador) IniciarPorHTTPS(puerto, certificadoPublico, certificadoPrivado string) error {
 	return o.iniciar("https", puerto, certificadoPublico, certificadoPrivado)
-}
-
-// NuevoCampoCabeceraHTTP devuelve un nuevo campo de cabecera HTTP para ser
-// asignado a un endpoint
-func (o *enrutador) NuevoCampoCabeceraHTTP(nombre string, valor interface{}) campoCabeceraHTTP {
-	return campoCabeceraHTTP{nombre, valor}
 }
 
 func (o *enrutador) nuevoEndpoint(metodo string, ruta string, funcion ManejadorFunc) *endpoint {
 	// convertir la ruta ingresada por el desarrollador a un patrón de ruta
-	patron, variables, err := o.rutaAPatronDeRuta(ruta)
+	pr, variables, err := o.rutaAPatronDeRuta(ruta)
 	if err != nil {
 		o.salir(fmt.Sprintf("La ruta ingresada: [%v] %v, posee un error al intentar generar un patrón de ruta: %v", metodo, ruta, err))
-		// o.errores = append(o.errores, fmt.Errorf("La ruta ingresada: [%v] %v, posee un error al intentar generar un patrón de ruta: %w", metodo, ri, err))
 	}
 
-	if _, ok := o.patronesDeRutas[patron]; !ok {
+	detallePtr, ok := o.patronesDeRutas[pr]
+	if !ok {
 		// crear un nuevo detalle del patrón de ruta
-		var detalle = patronDeRutaDetalle{
-			// QUITAR metodosPermitos: []string{metodo},
+		var detallePtr = &patronDeRutaDetalle{
 			variables: variables,
 		}
-		// var ep = endpoint{cabecera: make(map[string]interface{}), funcion: funcion} // crear un nuevo endpoint
-		var ep = endpoint{funcion: funcion}                 // crear un nuevo endpoint
-		detalle.endpoints = map[string]endpoint{metodo: ep} // agregar el endpoint en el detalle del patrón de ruta
-		o.patronesDeRutas[patron] = detalle                 // agregar el patrón de ruta en el mapa de patrones de rutas
+		detallePtr.cors.metodosPermitidos = []string{metodo}
 
-		return &ep
+		var epPtr = &endpoint{detalle: detallePtr, funcion: funcion} // crear un nuevo endpoint
+		detallePtr.endpoints = map[string]*endpoint{metodo: epPtr}   // agregar el endpoint en el detalle del patrón de ruta
+		o.patronesDeRutas[pr] = detallePtr                           // agregar el patrón de ruta en el mapa de patrones de rutas
+
+		return epPtr
+	}
+
+	// verificar que las variables de un mismo patrón de ruta, lleven los
+	// mismos nombres
+	for i := 0; i < len(detallePtr.variables); i++ {
+		if detallePtr.variables[i].nombre != variables[i].nombre {
+			o.salir(fmt.Sprintf("Existe un patrón de ruta: %v, que contiene endpoints con distintos nombres de variables", pr))
+		}
 	}
 
 	// verificar que no se pueda ingresar otro endpoint con el mismo método
 	// para este patrón de ruta.
-	if _, ok := o.patronesDeRutas[patron].endpoints[metodo]; ok {
+	if _, ok := o.patronesDeRutas[pr].endpoints[metodo]; ok {
 		o.salir(fmt.Sprintf("La ruta ingresada: [%v] %v, ya posee un endpoint creado con el mismo método", metodo, ruta))
 	}
 
-	var detalle = o.patronesDeRutas[patron]
-	// QUITAR  detalle.metodosPermitos = append(detalle.metodosPermitos, metodo) // agregar el método permitido al detalle del patrón de ruta
-	o.patronesDeRutas[patron] = detalle // actualizar el detalle del patrón de ruta
+	detallePtr.cors.metodosPermitidos = append(detallePtr.cors.metodosPermitidos, metodo) // agregar el método permitido al detalle del patrón de ruta
+	var epPtr = &endpoint{detalle: detallePtr, funcion: funcion}                          // crear un nuevo endpoint
+	detallePtr.endpoints[metodo] = epPtr                                                  // asignar el nuevo endpoint
 
-	// var ep = endpoint{cabecera: make(map[string]interface{}), funcion: funcion} // crear un nuevo endpoint
-	var ep = endpoint{funcion: funcion}              // crear un nuevo endpoint
-	o.patronesDeRutas[patron].endpoints[metodo] = ep // asignar el nuevo endpoint
-
-	return &ep
+	return epPtr
 }
 
-// rutaAPatronDeRuta convierte la ruta ingresada por el desarrollador del
-// aplicativo a un patrón de ruta.
-func (o *enrutador) rutaAPatronDeRuta(s string) (string, []variableDePatronDeRuta, error) {
+// rutaAPatronDeRuta convierte la ruta ingresada por el desarrollador de la
+// aplicación a un patrón de ruta.
+func (o *enrutador) rutaAPatronDeRuta(s string) (patronDeRuta, []variableDePatronDeRuta, error) {
 	if s == "" {
 		return "", nil, fmt.Errorf("la ruta recibida está vacía")
 	}
@@ -266,7 +364,7 @@ func (o *enrutador) rutaAPatronDeRuta(s string) (string, []variableDePatronDeRut
 		partes = append(partes, "{v}")
 	}
 
-	return "/" + strings.Join(partes, "/"), variables, nil
+	return patronDeRuta("/" + strings.Join(partes, "/")), variables, nil
 }
 
 // buscarPatronDeRuta busca que exista el patrón de ruta, según la ruta recibida.
@@ -279,8 +377,8 @@ func (o *enrutador) buscarPatronDeRuta(rutaRecibida string) (*patronDeRutaDetall
 		partesRutaRecibida = partesRutaRecibida[:len(partesRutaRecibida)-1]
 	}
 
-	for patron, detalle := range o.patronesDeRutas {
-		partesPatronDeRuta := strings.Split(patron, "/")
+	for pr, detallePtr := range o.patronesDeRutas {
+		partesPatronDeRuta := strings.Split(pr.string(), "/")[1:]
 
 		if len(partesRutaRecibida) != len(partesPatronDeRuta) {
 			continue
@@ -300,32 +398,17 @@ func (o *enrutador) buscarPatronDeRuta(rutaRecibida string) (*patronDeRutaDetall
 			}
 		}
 		if encontrado {
-			var variables = make(map[string]string, len(detalle.variables))
+			var variables = make(map[string]string, len(detallePtr.variables))
 			// si se ha encontrado el patrón de ruta, crear el mapa de variables
-			for _, variable := range detalle.variables {
+			for _, variable := range detallePtr.variables {
 				variables[variable.nombre] = partesPatronDeRuta[variable.posicion]
 			}
 
-			return &detalle, variables, true
+			return detallePtr, variables, true
 		}
 	}
 
 	return nil, nil, false
-}
-
-func (o *enrutador) mostrarPatronesDeRutas() {
-	for rp, rpd := range o.patronesDeRutas {
-		fmt.Printf("[%v]\n", rp)
-		// QUITAR fmt.Printf("\t%v\n", rpd.metodosPermitos)
-		fmt.Printf("\t%v\n", rpd.variables)
-		for metodo, ep := range rpd.endpoints {
-			fmt.Printf("\t\t[%v]\n", metodo)
-			// for c, v := range ep.cabecera {
-			// 	fmt.Printf("\t\t\t [%v] = %v\n", c, v)
-			// }
-			fmt.Printf("\t\tFunción: %v\n", ep.funcion)
-		}
-	}
 }
 
 // iniciar inicia el servidor escuchando por el protocolo y puerto establecido.
@@ -347,9 +430,33 @@ func (o *enrutador) salir(mensaje string) {
 	os.Exit(2)
 }
 
-// CrearEnrutador crea el enrutador para administrar las rutas del aplicativo.
+// CrearEnrutador crea el enrutador para administrar las rutas de la aplicación.
 func CrearEnrutador() *enrutador {
-	return &enrutador{
-		patronesDeRutas: make(map[string]patronDeRutaDetalle),
+	var r = &enrutador{
+		patronesDeRutas: make(map[patronDeRuta]*patronDeRutaDetalle),
 	}
+
+	r.cors.origenes, r.cors.credenciales, r.cors.duracion = []string{"*"}, false, -1
+	return r
+}
+
+// ObtenerVariablesDeRuta retorna un mapa con los nombres de variables del patrón
+// de ruta junto con los valores recibos de la solicitud del cliente.
+func ObtenerVariablesDeRuta(r *http.Request) map[string]string {
+	m, ok := r.Context().Value("variables").(map[string]string)
+	if !ok {
+		return map[string]string{}
+	}
+
+	return m
+}
+
+// ObtenerCORS retorna un mapa con los campos de la cabecera CORS.
+func ObtenerCORS(r *http.Request) map[string]string {
+	m, ok := r.Context().Value("cors").(map[string]string)
+	if !ok {
+		return map[string]string{}
+	}
+
+	return m
 }
