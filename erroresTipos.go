@@ -3,13 +3,13 @@ package apirest
 // ErrorNuevoMalRequerimiento crea un nuevo error de tipo:
 // 400 (Mal requerimiento).
 func ErrorNuevoMalRequerimiento(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado400MalRequerimiento, nil, formato, args)
+	return errorNuevo(HTTPEstado400MalRequerimiento, nil, formato, args...)
 }
 
 // ErrorNuevoMalRequerimientoConOrigen crea un nuevo error con origen de tipo:
 // 400 (Mal requerimiento).
 func ErrorNuevoMalRequerimientoConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado400MalRequerimiento, origen, formato, args)
+	return errorNuevo(HTTPEstado400MalRequerimiento, origen, formato, args...)
 }
 
 // ErrorEsErrorMalRequerimiento devuelve el resultado de conocer si el error
@@ -26,13 +26,13 @@ func ErrorEsErrorMalRequerimiento(err error) bool {
 // ErrorNuevoSinAutorizacion crea un nuevo error de tipo:
 // 401 (Sin autorización).
 func ErrorNuevoSinAutorizacion(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado401SinAutorizacion, nil, formato, args)
+	return errorNuevo(HTTPEstado401SinAutorizacion, nil, formato, args...)
 }
 
 // ErrorNuevoSinAutorizacionConOrigen crea un nuevo error con origen de tipo:
 // 401 (Sin autorización).
 func ErrorNuevoSinAutorizacionConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado401SinAutorizacion, origen, formato, args)
+	return errorNuevo(HTTPEstado401SinAutorizacion, origen, formato, args...)
 }
 
 // ErrorEsErrorSinAutorizacion devuelve el resultado de conocer si el error
@@ -49,13 +49,13 @@ func ErrorEsErrorSinAutorizacion(err error) bool {
 // ErrorNuevoSinPrivilegios crea un nuevo error de tipo:
 // 403 (Sin privilegios).
 func ErrorNuevoSinPrivilegios(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado403SinPrivilegios, nil, formato, args)
+	return errorNuevo(HTTPEstado403SinPrivilegios, nil, formato, args...)
 }
 
 // ErrorNuevoSinPrivilegiosConOrigen crea un nuevo error con origen de tipo:
 // 403 (Sin privilegios).
 func ErrorNuevoSinPrivilegiosConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado403SinPrivilegios, origen, formato, args)
+	return errorNuevo(HTTPEstado403SinPrivilegios, origen, formato, args...)
 }
 
 // ErrorEsErrorSinPrivilegios devuelve el resultado de conocer si el error
@@ -72,13 +72,13 @@ func ErrorEsErrorSinPrivilegios(err error) bool {
 // ErrorNuevoRecursoInexistente crea un nuevo error de tipo:
 // 404 (Recurso inexistente).
 func ErrorNuevoRecursoInexistente(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado404RecursoInexistente, nil, formato, args)
+	return errorNuevo(HTTPEstado404RecursoInexistente, nil, formato, args...)
 }
 
 // ErrorNuevoRecursoInexistenteConOrigen crea un nuevo error con origen de tipo:
 // 404 (Recurso inexistente).
 func ErrorNuevoRecursoInexistenteConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado404RecursoInexistente, origen, formato, args)
+	return errorNuevo(HTTPEstado404RecursoInexistente, origen, formato, args...)
 }
 
 // ErrorEsErrorRecursoInexistente devuelve el resultado de conocer si el error
@@ -95,13 +95,13 @@ func ErrorEsErrorRecursoInexistente(err error) bool {
 // ErrorNuevoMetodoNoImplementado crea un nuevo error de tipo:
 // 405 (Método no implementado).
 func ErrorNuevoMetodoNoImplementado(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado405MetodoNoImplementado, nil, formato, args)
+	return errorNuevo(HTTPEstado405MetodoNoImplementado, nil, formato, args...)
 }
 
 // ErrorNuevoMetodoNoImplementadoConOrigen crea un nuevo error con origen de tipo:
 // 405 (Método no implementado).
 func ErrorNuevoMetodoNoImplementadoConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado405MetodoNoImplementado, origen, formato, args)
+	return errorNuevo(HTTPEstado405MetodoNoImplementado, origen, formato, args...)
 }
 
 // ErrorEsErrorMetodoNoImplementado devuelve el resultado de conocer si el error
@@ -118,13 +118,13 @@ func ErrorEsErrorMetodoNoImplementado(err error) bool {
 // ErrorNuevoRequerimientoMuyGrande crea un nuevo error de tipo:
 // 413 (Requerimiento muy grande).
 func ErrorNuevoRequerimientoMuyGrande(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado413RequerimientoMuyGrande, nil, formato, args)
+	return errorNuevo(HTTPEstado413RequerimientoMuyGrande, nil, formato, args...)
 }
 
 // ErrorNuevoRequerimientoMuyGrandeConOrigen crea un nuevo error con origen de tipo:
 // 413 (Requerimiento muy grande).
 func ErrorNuevoRequerimientoMuyGrandeConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado413RequerimientoMuyGrande, origen, formato, args)
+	return errorNuevo(HTTPEstado413RequerimientoMuyGrande, origen, formato, args...)
 }
 
 // ErrorEsErrorRequerimientoMuyGrande devuelve el resultado de conocer si el error
@@ -141,13 +141,13 @@ func ErrorEsErrorRequerimientoMuyGrande(err error) bool {
 // ErrorNuevoURIMuyGrande crea un nuevo error de tipo:
 // 414 (URI muy grande).
 func ErrorNuevoURIMuyGrande(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado414URIMuyGrande, nil, formato, args)
+	return errorNuevo(HTTPEstado414URIMuyGrande, nil, formato, args...)
 }
 
 // ErrorNuevoURIMuyGrandeConOrigen crea un nuevo error con origen de tipo:
 // 414 (URI muy grande).
 func ErrorNuevoURIMuyGrandeConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado414URIMuyGrande, origen, formato, args)
+	return errorNuevo(HTTPEstado414URIMuyGrande, origen, formato, args...)
 }
 
 // ErrorEsErrorURIMuyGrande devuelve el resultado de conocer si el error
@@ -164,13 +164,13 @@ func ErrorEsErrorURIMuyGrande(err error) bool {
 // ErrorNuevoMalFormato crea un nuevo error de tipo:
 // 415 (Mal formato).
 func ErrorNuevoMalFormato(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado415MalFormato, nil, formato, args)
+	return errorNuevo(HTTPEstado415MalFormato, nil, formato, args...)
 }
 
 // ErrorNuevoMalFormatoConOrigen crea un nuevo error con origen de tipo:
 // 415 (Mal formato).
 func ErrorNuevoMalFormatoConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado415MalFormato, origen, formato, args)
+	return errorNuevo(HTTPEstado415MalFormato, origen, formato, args...)
 }
 
 // ErrorEsErrorMalFormato devuelve el resultado de conocer si el error
@@ -187,13 +187,13 @@ func ErrorEsErrorMalFormato(err error) bool {
 // ErrorNuevoInternoDeServidor crea un nuevo error de tipo:
 // 500 (Error interno de servidor).
 func ErrorNuevoInternoDeServidor(formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado500InternoDeServidor, nil, formato, args)
+	return errorNuevo(HTTPEstado500InternoDeServidor, nil, formato, args...)
 }
 
 // ErrorNuevoInternoDeServidorConOrigen crea un nuevo error con origen de tipo:
 // 500 (Error interno de servidor).
 func ErrorNuevoInternoDeServidorConOrigen(origen error, formato string, args ...interface{}) error {
-	return errorNuevo(HTTPEstado500InternoDeServidor, origen, formato, args)
+	return errorNuevo(HTTPEstado500InternoDeServidor, origen, formato, args...)
 }
 
 // ErrorEsErrorInternoDeServidor devuelve el resultado de conocer si el error

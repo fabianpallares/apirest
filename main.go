@@ -290,7 +290,7 @@ func (o *enrutador) nuevoEndpoint(metodo string, ruta string, funcion ManejadorF
 	// convertir la ruta ingresada por el desarrollador a un patrón de ruta
 	pr, variables, err := o.rutaAPatronDeRuta(ruta)
 	if err != nil {
-		o.salir(fmt.Sprintf("La ruta ingresada: [%v] %v, posee un error al intentar generar un patrón de ruta: %v", metodo, ruta, err))
+		finalizar(fmt.Sprintf("La ruta ingresada: [%v] %v, posee un error al intentar generar un patrón de ruta: %v", metodo, ruta, err))
 	}
 
 	detallePtr, ok := o.patronesDeRutas[pr]
@@ -312,14 +312,14 @@ func (o *enrutador) nuevoEndpoint(metodo string, ruta string, funcion ManejadorF
 	// mismos nombres
 	for i := 0; i < len(detallePtr.variables); i++ {
 		if detallePtr.variables[i].nombre != variables[i].nombre {
-			o.salir(fmt.Sprintf("Existe un patrón de ruta: %v, que contiene endpoints con distintos nombres de variables", pr))
+			finalizar(fmt.Sprintf("Existe un patrón de ruta: %v, que contiene endpoints con distintos nombres de variables", pr))
 		}
 	}
 
 	// verificar que no se pueda ingresar otro endpoint con el mismo método
 	// para este patrón de ruta.
 	if _, ok := o.patronesDeRutas[pr].endpoints[metodo]; ok {
-		o.salir(fmt.Sprintf("La ruta ingresada: [%v] %v, ya posee un endpoint creado con el mismo método", metodo, ruta))
+		finalizar(fmt.Sprintf("La ruta ingresada: [%v] %v, ya posee un endpoint creado con el mismo método", metodo, ruta))
 	}
 
 	detallePtr.cors.metodosPermitidos = append(detallePtr.cors.metodosPermitidos, metodo) // agregar el método permitido al detalle del patrón de ruta
@@ -401,7 +401,7 @@ func (o *enrutador) buscarPatronDeRuta(rutaRecibida string) (*patronDeRutaDetall
 			var variables = make(map[string]string, len(detallePtr.variables))
 			// si se ha encontrado el patrón de ruta, crear el mapa de variables
 			for _, variable := range detallePtr.variables {
-				variables[variable.nombre] = partesPatronDeRuta[variable.posicion]
+				variables[variable.nombre] = partesRutaRecibida[variable.posicion]
 			}
 
 			return detallePtr, variables, true
@@ -424,10 +424,15 @@ func (o *enrutador) iniciar(protocolo, puerto, certificadoPublico, certificadoPr
 	return http.ListenAndServeTLS(puerto, certificadoPublico, certificadoPrivado, o)
 }
 
-// salir finaliza la ejecución del servidor.
-func (o *enrutador) salir(mensaje string) {
+// finalizar finaliza la ejecución del servidor.
+func finalizar(mensaje string) {
 	fmt.Println(mensaje)
 	os.Exit(2)
+}
+
+// Finalizar finaliza la ejecución del servidor.
+func Finalizar(mensaje string) {
+	finalizar(mensaje)
 }
 
 // CrearEnrutador crea el enrutador para administrar las rutas de la aplicación.

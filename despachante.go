@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"strings"
 )
 
 // HTTPEstado establece el tipo de código de estado de respuesta HTTP.
@@ -97,25 +98,78 @@ func HTTPResponder(w http.ResponseWriter, estadoHTTP HTTPEstado, contenidoHTTP H
 	return nil
 }
 
-// HTTPRecibirJSON verifica que se reciba un objeto JSON en el cuerpo del mensaje
-// con un tamaño máximo de caracteres. Se intenta convertilo al objeto
-// (puntero de estructura) recibido por parámetro.
-func HTTPRecibirJSON(r *http.Request, objetoPtr interface{}) error {
-	cuerpo, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return errDeserealizarLectura
+// ObjetoAJSON intenta convertir el objeto recibido en un array de bytes con
+// un formato JSON.
+func ObjetoAJSON(objetoPtr interface{}) ([]byte, error) {
+	return json.Marshal(objetoPtr)
+}
+
+// HTTPRecibirJSON verifica que se reciba un objeto JSON en el cuerpo del
+// mensaje. Se intenta convertilo al objeto (puntero de estructura)
+// recibido por parámetro.
+func HTTPRecibirJSON(r *http.Request, objetoPtr interface{}, validarCamposDesconocidos bool) error {
+	return JSONAObjeto(r.Body, objetoPtr, validarCamposDesconocidos)
+}
+
+// JSONAObjeto convierte el array de bytes recibido (que debería ser un formato
+// JSON válido) e intenta completar los campos de la estructura recibida.
+func JSONAObjeto(r io.Reader, objetoPtr interface{}, validarCamposDesconocidos bool) error {
+	// r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+	var descifrador = json.NewDecoder(r)
+	if validarCamposDesconocidos {
+		// no permite recibir campos desconocidos
+		descifrador.DisallowUnknownFields()
 	}
 
-	err = r.Body.Close()
-	if err != nil {
-		return errDeserealizarLectura
+	var err = descifrador.Decode(objetoPtr)
+	if err == nil {
+		return nil
 	}
 
-	// realizar la deserealización (casteo) al puntero de objeto recibido
-	err = json.Unmarshal(cuerpo, &objetoPtr)
-	if err != nil {
-		return errDeserealizarConversion
+	var syntaxError *json.SyntaxError
+	var unmarshalTypeError *json.UnmarshalTypeError
+
+	switch {
+	case errors.Is(err, io.EOF):
+		// verificar que se haya recibido información en el cuerpo del mensaje
+		return fmt.Errorf("El formato JSON recibido es incorrecto. Contenido vacío")
+
+	case errors.Is(err, io.ErrUnexpectedEOF):
+		// verificar la lectura del cuerpo del mensaje
+		return fmt.Errorf("El formato JSON recibido es incorrecto. Se ha llegado al final de la lectura de manera inesperada")
+
+	case errors.As(err, &syntaxError):
+		// verificar si el formato es correcto, si faltan dobles comillas,
+		// comillas, comas, llaves, corchetes; etc.
+		return fmt.Errorf("El formato JSON recibido es incorrecto. Error en la posición: %v", syntaxError.Offset)
+
+	case errors.As(err, &unmarshalTypeError):
+		// verificar si hay un error de tipo de campo, campos que contienen
+		// tipos de valores erroneos
+		var valor string
+		switch unmarshalTypeError.Value {
+		case "number":
+			valor = "numérico"
+		case "string":
+			valor = "texto"
+		case "bool":
+			valor = "lógico"
+		default:
+			valor = unmarshalTypeError.Value
+		}
+		return fmt.Errorf("El formato JSON recibido es incorrecto. Error en el campo: \"%v\", tipo de valor recibido: %v, posición: %v", unmarshalTypeError.Field, valor, unmarshalTypeError.Offset)
+
+	case strings.HasPrefix(err.Error(), "json: unknown field "):
+		// verificar si se recibieron campos adicionales que no están en la
+		// estructura recibida
+		var campo = strings.TrimPrefix(err.Error(), "json: unknown field ")
+		return fmt.Errorf("El formato JSON recibido es incorrecto. Se ha recibido un nombre de campo inexistente: %v", campo)
+
+	case err.Error() == "http: request body too large":
+		// verificar contenido muy largo
+		return fmt.Errorf("El formato JSON recibido es incorrecto. El texto recibido es demasiado grande")
 	}
 
-	return nil
+	// cualquier otro tipo de error
+	return fmt.Errorf("El formato JSON recibido es incorrecto: %w", err)
 }
