@@ -9,7 +9,7 @@ Para instalar el paquete utilice la siguiente sentencia:
 go get -u github.com/fabianpallares/apirest
 ```
 
-## Ruteador:
+## Enrutador:
 Una de las principales funcionalidades del paquete, es la de poder gestionar las
 rutas (los endpoints) del aplicativo de una manera muy simple y completa:
 
@@ -22,19 +22,19 @@ import (
 )
 
 func main() {
-	var r = apirest.CrearEnrutador()
+    var r = apirest.CrearEnrutador()
 
-	r.GET("/personas", hola)
+    r.GET("/hola", hola)
 
     if err := r.IniciarPorHTTP(app.apirest.puerto); err != nil {
-		apirest.Finalizar(fmt.Sprintf("No es posible iniciar el servidor: %v", err.Error()))
+        apirest.Finalizar(fmt.Sprintf("No es posible iniciar el servidor: %v", err.Error()))
     }
 }
 
 func hola(w http.ResponseWriter, r *http.Request) (interface{}, error) {
     var retorno = struct {
         Mensaje string `json:"mensaje"`
-    }{Mensaje: "Hola ruteador"}
+    }{Mensaje: "Hola enrutador"}
 
     apirest.HTTPResponder(w, apirest.HTTPEstadoOk, apirest.HTTPContenidoApplicationJSON, nil, retorno)
 
