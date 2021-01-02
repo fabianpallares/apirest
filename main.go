@@ -1,3 +1,5 @@
+/*Package apirest gestiona las rutas y comportamientos de aplicaciones que exponen
+funcionalidad APIREST.*/
 package apirest
 
 import (
@@ -170,7 +172,7 @@ func (o *enrutador) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	detallePtr, variables, encontrado := o.buscarPatronDeRuta(rutaRecibida)
 	if !encontrado {
-		http.Error(w, "Recurso inexistente", http.StatusNotFound)
+		responderError(w, HTTPEstadoErrorNoEncontrado, "apirest.uriInexistente", "La URI solicitada es inexistente")
 		return
 	}
 
@@ -178,7 +180,7 @@ func (o *enrutador) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metodoRecibido := r.Method
 	if metodoRecibido == "OPTIONS" {
 		if !o.cors.esActivo {
-			http.Error(w, "La aplicación no implementa el método OPTIONS (No se encuentra activa la opcion CORS)", http.StatusNotFound)
+			responderError(w, HTTPEstadoErrorMetodoNoImplementado, "apirest.metodoNoImplementado", "La aplicación no implementa el método OPTIONS (No se encuentra activa la opcion CORS)")
 			return
 		}
 		w.Header().Set(cors.AccessControlAllowOrigin, strings.Join(o.cors.origenes, ", "))
@@ -195,7 +197,7 @@ func (o *enrutador) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// si no es options... verificar la existencia del método HTTP recibido
 	ep, ok := detallePtr.endpoints[metodoRecibido]
 	if !ok {
-		http.Error(w, fmt.Sprintf("La ruta solicitada no implementa el método %v", metodoRecibido), http.StatusNotFound)
+		responderError(w, HTTPEstadoErrorMetodoNoImplementado, "apirest.metodoNoImplementado", fmt.Sprintf("La ruta solicitada no implementa el método %v", metodoRecibido))
 		return
 	}
 
@@ -422,6 +424,20 @@ func (o *enrutador) iniciar(protocolo, puerto, certificadoPublico, certificadoPr
 	}
 
 	return http.ListenAndServeTLS(puerto, certificadoPublico, certificadoPrivado, o)
+}
+
+// -----------------------------------------------------------------------------
+
+func responderError(w http.ResponseWriter, estadoHTTP HTTPEstado, codigo, mensaje string) {
+	var errRetorno = struct {
+		Error struct {
+			Codigo  string `json:"codigo,omitempty"`
+			Mensaje string `json:"mensaje,omitempty"`
+		} `json:"error"`
+	}{}
+
+	errRetorno.Error.Codigo, errRetorno.Error.Mensaje = codigo, mensaje
+	HTTPResponder(w, estadoHTTP, HTTPContenidoApplicationJSON, nil, &errRetorno)
 }
 
 // finalizar finaliza la ejecución del servidor.

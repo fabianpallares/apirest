@@ -9,38 +9,68 @@ import (
 	"strings"
 )
 
-// HTTPEstado establece el tipo de código de estado de respuesta HTTP.
+// HTTPEstado es el tipo que establece el código de estado de respuesta HTTP.
 type HTTPEstado int
 
-func (t HTTPEstado) entero() int {
+// obtenerEntero devuelve el código de estado de respuesta HTTP, con tipo int.
+func (t HTTPEstado) obtenerEntero() int {
 	return int(t)
 }
 
-// Códigos de estados de respuesta HTTP.
+// Códigos de estados de respuesta HTTP:
+// 	HTTPEstadoOk                      = 200
+// 	HTTPEstadoOkCreado                = 201
+// 	HTTPEstadoOkSinContenido          = 204
+// 	HTTPEstadoMalRequerimiento        = 400
+// 	HTTPEstadoSinAutorizacion         = 401
+// 	HTTPEstadoSinPrivilegios          = 403
+// 	HTTPEstadoNoEncontrado            = 404
+// 	HTTPEstadoMetodoNoImplementado    = 405
+// 	HTTPEstadoRequerimientoMuyGrande  = 413
+// 	HTTPEstadoURIMuyGrande            = 414
+// 	HTTPEstadoMalFormato              = 415
+// 	HTTPEstadoErrorInternoDeServidor  = 500
 const (
-	HTTPEstado200OK                     HTTPEstado = 200
-	HTTPEstado201Creado                 HTTPEstado = 201
-	HTTPEstado204SinContenido           HTTPEstado = 204
-	HTTPEstado400MalRequerimiento       HTTPEstado = 400
-	HTTPEstado401SinAutorizacion        HTTPEstado = 401
-	HTTPEstado403SinPrivilegios         HTTPEstado = 403
-	HTTPEstado404RecursoInexistente     HTTPEstado = 404
-	HTTPEstado405MetodoNoImplementado   HTTPEstado = 405
-	HTTPEstado413RequerimientoMuyGrande HTTPEstado = 413
-	HTTPEstado414URIMuyGrande           HTTPEstado = 414
-	HTTPEstado415MalFormato             HTTPEstado = 415
-	HTTPEstado500InternoDeServidor      HTTPEstado = 500
+	HTTPEstadoOk                          HTTPEstado = 200
+	HTTPEstadoOkCreado                    HTTPEstado = 201
+	HTTPEstadoOkSinContenido              HTTPEstado = 204
+	HTTPEstadoErrorMalRequerimiento       HTTPEstado = 400
+	HTTPEstadoErrorSinAutorizacion        HTTPEstado = 401
+	HTTPEstadoErrorSinPrivilegios         HTTPEstado = 403
+	HTTPEstadoErrorNoEncontrado           HTTPEstado = 404
+	HTTPEstadoErrorMetodoNoImplementado   HTTPEstado = 405
+	HTTPEstadoErrorRequerimientoMuyGrande HTTPEstado = 413
+	HTTPEstadoErrorURIMuyGrande           HTTPEstado = 414
+	HTTPEstadoErrorMalFormato             HTTPEstado = 415
+	HTTPEstadoErrorInternoDeServidor      HTTPEstado = 500
 )
 
 // HTTPContenido establece el tipo de contenido dentro del cuerpo de los
 // mensajes HTTP.
 type HTTPContenido string
 
-func (t HTTPContenido) texto() string {
+// obtenerTexto devuelve el tipo de contenido HTTP, con tipo string.
+func (t HTTPContenido) obtenerTexto() string {
 	return string(t)
 }
 
 // Códigos de tipos de contenido dentro del cuerpo de los mensajes HTTP.
+// 	HTTPContenidoSinContenido      = ""
+// 	HTTPContenidoApplicationJSON   = "application/json charset=utf-8"
+// 	HTTPContenidoApplicationXML    = "application/xml; charset=utf-8"
+// 	HTTPContenidoApplicationRTF    = "application/rtf; charset=utf-8"
+//	HTTPContenidoApplicationPDF    = "application/pdf"
+// 	HTTPContenidoApplicationGZIP   = "applicatio/gzip"
+// 	HTTPContenidoApplicationHTTP   = "applicatio/http"
+// 	HTTPContenidoApplicationMSWord = "applicatio/msword"
+// 	HTTPContenidoTextHTML          = "tex/html; charset=utf-8"
+//	HTTPContenidoImagePNG          = "image/png"
+// 	HTTPContenidoImageJPEG         = "imag/jpeg"
+// 	HTTPContenidoImageGIF          = "imag/gif"
+// 	HTTPContenidoTextPlain         = "tex/plain; charset=utf-8"
+// 	HTTPContenidoTextCSV           = "text/csv; charset=utf-8"
+// 	HTTPContenidoTextXML           = "text/xml; charset=utf-8"
+// 	HTTPContenidoTextRTF           = "text/rtf; charset=utf-8"
 const (
 	HTTPContenidoSinContenido      HTTPContenido = ""
 	HTTPContenidoApplicationJSON   HTTPContenido = "application/json charset=utf-8"
@@ -75,16 +105,16 @@ func HTTPResponder(w http.ResponseWriter, estadoHTTP HTTPEstado, contenidoHTTP H
 
 	// si el cuerpo es vacío, responder un código de estado 204 (sin contenido)
 	// y finalizar el proceso de respuesta.
-	if cuerpo == nil || estadoHTTP == HTTPEstado204SinContenido {
-		w.WriteHeader(HTTPEstado204SinContenido.entero())
+	if cuerpo == nil || estadoHTTP == HTTPEstadoOkSinContenido {
+		w.WriteHeader(HTTPEstadoOkSinContenido.obtenerEntero())
 		return nil
 	}
 
 	// escribir el tipo de contenido
-	w.Header().Set("Content-Type", contenidoHTTP.texto())
+	w.Header().Set("Content-Type", contenidoHTTP.obtenerTexto())
 
 	// escribir el código de estado
-	w.WriteHeader(estadoHTTP.entero())
+	w.WriteHeader(estadoHTTP.obtenerEntero())
 
 	switch contenidoHTTP {
 	case HTTPContenidoApplicationJSON:
