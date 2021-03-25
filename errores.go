@@ -78,7 +78,6 @@ func (o *errorAPIREST) AsignarValoresAdicionales(valores ...string) *errorAPIRES
 // 		M es un valor de 1 a 5 (versión del UUID): 4 es UUID random.
 // 		N es "8", "9", "a" o "b".
 func (o *errorAPIREST) AsignarUUID() *errorAPIREST {
-
 	var a [16]byte
 	if _, err := io.ReadFull(randc.Reader, a[:]); err != nil {
 		// si se produce un error, utilizar otro método de generación.
@@ -335,7 +334,7 @@ func ErrorEsURIMuyGrande(err error) (*errorAPIREST, bool) {
 }
 
 // -----------------------------------------------------------------------------
-// Error mal formafo
+// Error mal formato
 
 // ErrorNuevoMalFormato crea un error de tipo:
 // 415 (mal formato).

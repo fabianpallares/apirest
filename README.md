@@ -27,18 +27,14 @@ func main() {
     r.GET("/hola", hola)
 
     if err := r.IniciarPorHTTP(app.apirest.puerto); err != nil {
-        apirest.Finalizar(fmt.Sprintf("No es posible iniciar el servidor: %v", err.Error()))
+        apirest.Finalizar("No es posible iniciar el servidor: %v", err.Error())
     }
 }
 
 func hola(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-    var retorno = struct {
-        Mensaje string `json:"mensaje"`
-    }{Mensaje: "Hola enrutador"}
+    apirest.HTTPResponder(w, apirest.HTTPEstadoOk, apirest.HTTPContenidoApplicationJSON, nil, "Hola mundo")
 
-    apirest.HTTPResponder(w, apirest.HTTPEstadoOk, apirest.HTTPContenidoApplicationJSON, nil, retorno)
-
-    return retorno, nil
+    return nil, nil
 }
 
 ```

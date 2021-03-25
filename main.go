@@ -292,7 +292,7 @@ func (o *enrutador) nuevoEndpoint(metodo string, ruta string, funcion ManejadorF
 	// convertir la ruta ingresada por el desarrollador a un patrón de ruta
 	pr, variables, err := o.rutaAPatronDeRuta(ruta)
 	if err != nil {
-		finalizar(fmt.Sprintf("La ruta ingresada: [%v] %v, posee un error al intentar generar un patrón de ruta: %v", metodo, ruta, err))
+		finalizar("La ruta ingresada: [%v] %v, posee un error al intentar generar un patrón de ruta: %v", metodo, ruta, err)
 	}
 
 	detallePtr, ok := o.patronesDeRutas[pr]
@@ -314,14 +314,14 @@ func (o *enrutador) nuevoEndpoint(metodo string, ruta string, funcion ManejadorF
 	// mismos nombres
 	for i := 0; i < len(detallePtr.variables); i++ {
 		if detallePtr.variables[i].nombre != variables[i].nombre {
-			finalizar(fmt.Sprintf("Existe un patrón de ruta: %v, que contiene endpoints con distintos nombres de variables", pr))
+			finalizar("Existe un patrón de ruta: %v, que contiene endpoints con distintos nombres de variables", pr)
 		}
 	}
 
 	// verificar que no se pueda ingresar otro endpoint con el mismo método
 	// para este patrón de ruta.
 	if _, ok := o.patronesDeRutas[pr].endpoints[metodo]; ok {
-		finalizar(fmt.Sprintf("La ruta ingresada: [%v] %v, ya posee un endpoint creado con el mismo método", metodo, ruta))
+		finalizar("La ruta ingresada: [%v] %v, ya posee un endpoint creado con el mismo método", metodo, ruta)
 	}
 
 	detallePtr.cors.metodosPermitidos = append(detallePtr.cors.metodosPermitidos, metodo) // agregar el método permitido al detalle del patrón de ruta
@@ -429,26 +429,18 @@ func (o *enrutador) iniciar(protocolo, puerto, certificadoPublico, certificadoPr
 // -----------------------------------------------------------------------------
 
 func responderError(w http.ResponseWriter, estadoHTTP HTTPEstado, codigo, mensaje string) {
-	var errRetorno = struct {
-		Error struct {
-			Codigo  string `json:"codigo,omitempty"`
-			Mensaje string `json:"mensaje,omitempty"`
-		} `json:"error"`
-	}{}
-
-	errRetorno.Error.Codigo, errRetorno.Error.Mensaje = codigo, mensaje
-	HTTPResponder(w, estadoHTTP, HTTPContenidoApplicationJSON, nil, &errRetorno)
+	var cuerpo = fmt.Sprintf("{\"error\": {\"codigo\": %v, \"mensaje\": %v}}", codigo, mensaje)
+	HTTPResponder(w, estadoHTTP, HTTPContenidoApplicationJSON, nil, cuerpo)
 }
 
-// finalizar finaliza la ejecución del servidor.
-func finalizar(mensaje string) {
-	fmt.Println(mensaje)
-	os.Exit(2)
+func finalizar(formato string, args ...interface{}) {
+	fmt.Printf(formato, args...)
+	os.Exit(1) // salida por error general
 }
 
 // Finalizar finaliza la ejecución del servidor.
-func Finalizar(mensaje string) {
-	finalizar(mensaje)
+func Finalizar(formato string, args ...interface{}) {
+	finalizar(formato, args...)
 }
 
 // CrearEnrutador crea el enrutador para administrar las rutas de la aplicación.
