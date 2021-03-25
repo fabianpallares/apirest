@@ -26,7 +26,7 @@ func main() {
 
     r.GET("/hola", hola)
 
-    if err := r.IniciarPorHTTP(app.apirest.puerto); err != nil {
+    if err := r.IniciarPorHTTP("3280"); err != nil {
         apirest.Finalizar("No es posible iniciar el servidor: %v", err.Error())
     }
 }
