@@ -32,7 +32,7 @@ func main() {
 }
 
 func hola(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-    apirest.HTTPResponder(w, apirest.HTTPEstadoOk, apirest.HTTPContenidoApplicationJSON, nil, "Hola mundo")
+    apirest.HTTPResponder(w, apirest.HTTPEstadoOk, apirest.HTTPContenidoTextPlain, nil, "Hola mundo")
 
     return nil, nil
 }
