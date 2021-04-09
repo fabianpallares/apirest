@@ -1,6 +1,7 @@
 package apirest
 
 import (
+	"bytes"
 	"net/http"
 )
 
@@ -107,4 +108,13 @@ func HTTPResponder(w http.ResponseWriter, estadoHTTP HTTPEstado, contenidoHTTP H
 	w.Write([]byte(cuerpo))
 
 	return nil
+}
+
+// HTTPObtenerCuerpo devuelve el cuerpo del mensaje recibido como una
+// cadena de caracteres (string).
+func HTTPObtenerCuerpo(r *http.Request) string {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r.Body)
+
+	return buf.String()
 }
