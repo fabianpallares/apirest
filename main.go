@@ -429,7 +429,7 @@ func (o *enrutador) iniciar(protocolo, puerto, certificadoPublico, certificadoPr
 // -----------------------------------------------------------------------------
 
 func responderError(w http.ResponseWriter, estadoHTTP HTTPEstado, codigo, mensaje string) {
-	var cuerpo = fmt.Sprintf("{\"error\": {\"codigo\": %v, \"mensaje\": %v}}", codigo, mensaje)
+	var cuerpo = fmt.Sprintf("{\"error\": {\"codigo\": \"%v\", \"mensaje\": \"%v\"}}", codigo, mensaje)
 	HTTPResponder(w, estadoHTTP, HTTPContenidoApplicationJSON, nil, cuerpo)
 }
 

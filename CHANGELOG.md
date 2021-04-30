@@ -1,5 +1,10 @@
 # Cambios del aplicativo
 
+## [1.2.1] 2021-04-30
+### Modificados
+Se modificó el mensaje de error cuando no existe la URI solicitada.
+Tenía un error (faltaban cerrar bien las comillas)
+
 ## [1.2.0] 2021-04-09
 ### Agregados
 Se agregó la función HTTPObtenerCuerpo(r *http.Request), la cuál devuelve el cuerpo del mensaje recibido como una cadena de caracteres (string).
